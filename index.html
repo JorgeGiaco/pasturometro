@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#16321F">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Pasturómetro</title>
+<style>
+  :root {
+    --bg: #FAFAF7;
+    --ink: #16321F;
+    --ink-soft: #4E6153;
+    --ok: #3B8F2E;
+    --warn: #B86A12;
+    --bad: #B5322C;
+    --line: #D6DAD3;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { display: flex; flex-direction: column; padding-bottom: env(safe-area-inset-bottom); }
+  button { font: inherit; border: 0; border-radius: 10px; cursor: pointer; }
+  button:focus-visible { outline: 3px solid var(--ok); outline-offset: 2px; }
+
+  /* cámara ------------------------------------------------------------- */
+  #cam { position: relative; background: #000; aspect-ratio: 4 / 3; max-height: 36vh; overflow: hidden; }
+  #cam video, #cam canvas { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  #estado { position: absolute; left: 10px; bottom: 10px; padding: 6px 12px; border-radius: 999px;
+    font-size: 14px; font-weight: 600; color: #fff; background: rgba(0,0,0,.55); }
+  #estado.ok   { background: var(--ok); }
+  #estado.bad  { background: var(--bad); }
+  #estado.warn { background: var(--warn); }
+
+  /* lectura en vivo ---------------------------------------------------- */
+  #vivo { padding: 14px 20px 4px; }
+  #kg { font-size: clamp(56px, 18vw, 96px); font-weight: 800; line-height: 1; letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums; }
+  #kg small { font-size: 0.32em; font-weight: 600; letter-spacing: 0; margin-left: 6px; color: var(--ink-soft); }
+  #alt { font-size: 22px; margin-top: 6px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  #alt b { color: var(--ink); font-weight: 700; }
+  #resumen { padding: 8px 20px 12px; font-size: 16px; line-height: 1.4; color: var(--ink-soft);
+    border-bottom: 1px solid var(--line); }
+  #resumen b { color: var(--ink); }
+
+  /* acciones ----------------------------------------------------------- */
+  #acciones { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; padding: 14px 16px 10px; margin-top: auto; }
+  #btnLectura { grid-column: 1 / -1; background: var(--ink); color: #fff; font-size: 30px; font-weight: 800;
+    padding: 26px; letter-spacing: 0.02em; }
+  #btnLectura:disabled { background: var(--line); color: var(--ink-soft); }
+  #btnLectura:active:not(:disabled) { transform: scale(0.98); background: var(--ok); }
+  .sec { background: #fff; border: 2px solid var(--line); color: var(--ink); font-size: 17px; font-weight: 600; padding: 14px 6px; }
+  .sec:active { background: var(--line); }
+
+  /* panel más ---------------------------------------------------------- */
+  #mas { position: fixed; inset: 0; background: var(--bg); overflow-y: auto; padding: 18px 20px 40px;
+    transform: translateY(100%); transition: transform .25s ease; z-index: 10; }
+  #mas.abierto { transform: none; }
+  @media (prefers-reduced-motion: reduce) { #mas { transition: none; } }
+  #mas h2 { font-size: 22px; margin: 0 0 4px; }
+  #mas h3 { font-size: 17px; margin: 26px 0 6px; }
+  #mas p { margin: 0 0 10px; color: var(--ink-soft); font-size: 15px; line-height: 1.45; }
+  label { display: block; font-size: 15px; margin: 10px 0 4px; }
+  input[type=text], input[type=number] { width: 100%; font: inherit; font-size: 18px; padding: 10px 12px;
+    border: 2px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
+  input:focus { outline: none; border-color: var(--ok); }
+  .fila { display: flex; gap: 10px; }
+  .fila > * { flex: 1; }
+  .btn { background: #fff; border: 2px solid var(--ink); color: var(--ink); font-weight: 600; padding: 12px; font-size: 16px; width: 100%; margin-top: 8px; }
+  .btn.lleno { background: var(--ink); color: #fff; }
+  .btn.rojo { border-color: var(--bad); color: var(--bad); }
+  #cerrar { position: sticky; top: 0; float: right; background: var(--ink); color: #fff; padding: 10px 16px; font-weight: 700; }
+  .toggle { display: flex; align-items: center; gap: 10px; font-size: 16px; margin: 12px 0; }
+  .toggle input { width: 22px; height: 22px; }
+  #msg { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); background: var(--ink); color: #fff;
+    padding: 10px 18px; border-radius: 999px; font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+  #msg.ver { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div id="cam">
+  <video id="video" playsinline muted autoplay></video>
+  <canvas id="overlay"></canvas>
+  <div id="estado">Iniciando cámara</div>
+</div>
+
+<div id="vivo">
+  <div id="kg">—<small>kg MS/ha</small></div>
+  <div id="alt">Altura comprimida <b>—</b></div>
+</div>
+<div id="resumen">Sin lecturas todavía. Apoyá el plato en el suelo y calibrá desde “Más” si es la primera vez.</div>
+
+<div id="acciones">
+  <button id="btnLectura" disabled>Lectura</button>
+  <button class="sec" id="btnTara">Tara</button>
+  <button class="sec" id="btnDeshacer">Deshacer</button>
+  <button class="sec" id="btnMas">Más</button>
+</div>
+
+<div id="mas">
+  <button id="cerrar">Listo</button>
+  <h2>Ajustes</h2>
+
+  <h3>Potrero</h3>
+  <input type="text" id="potrero" placeholder="Nombre del potrero o lote">
+
+  <h3>Calibrar cámara (una vez por celular)</h3>
+  <p>Con el plato apoyado en el suelo firme, medí con cinta la distancia del lente de la cámara al marcador y anotala acá. Esto fija la escala y hace la tara al mismo tiempo.</p>
+  <label for="distReal">Distancia real lente a marcador, en cm</label>
+  <div class="fila">
+    <input type="number" id="distReal" inputmode="decimal" step="0.1" placeholder="p. ej. 92.5">
+    <button class="btn lleno" id="btnCalibrar">Calibrar</button>
+  </div>
+  <p id="calibInfo"></p>
+
+  <h3>Curva de materia seca</h3>
+  <p>kg MS/ha = A + B × altura en cm. La curva que viene cargada es un placeholder tipo raigrás; reemplazala con tus cortes.</p>
+  <label for="curvaNombre">Nombre de la curva</label>
+  <input type="text" id="curvaNombre">
+  <div class="fila">
+    <div><label for="curvaA">A (intercepto)</label><input type="number" id="curvaA" inputmode="decimal" step="1"></div>
+    <div><label for="curvaB">B (kg por cm)</label><input type="number" id="curvaB" inputmode="decimal" step="1"></div>
+  </div>
+
+  <h3>Opciones</h3>
+  <label class="toggle"><input type="checkbox" id="gps"> Guardar posición GPS en cada lectura</label>
+  <label class="toggle"><input type="checkbox" id="vibrar" checked> Vibrar al registrar</label>
+
+  <h3>Datos</h3>
+  <p id="datosInfo"></p>
+  <button class="btn lleno" id="btnCsv">Descargar CSV</button>
+  <button class="btn" id="btnCompartir">Compartir CSV</button>
+  <button class="btn rojo" id="btnBorrar">Borrar todas las lecturas</button>
+</div>
+
+<div id="msg"></div>
+
+<script src="aruco.js"></script>
+<script>
+// ===========================================================================
+// estado
+// ===========================================================================
+const $ = id => document.getElementById(id);
+const MARKER_ID = 0;
+const PROC_W = 480;               // ancho de procesamiento; solo importan proporciones
+const SMOOTH = 7;
+
+const cfg = Object.assign({
+  potrero: 'potrero1',
+  curvaNombre: 'placeholder_raigras',
+  A: 500, B: 140,
+  k: null,      // k = D0_real * lado0  (lado normalizado al ancho) -> D = k / lado
+  lado0: null,  // lado normalizado con el plato en el suelo (tara)
+  gps: false, vibrar: true,
+}, JSON.parse(localStorage.getItem('pasto.cfg') || '{}'));
+let lecturas = JSON.parse(localStorage.getItem('pasto.lecturas') || '[]');
+function guardar() {
+  localStorage.setItem('pasto.cfg', JSON.stringify(cfg));
+  localStorage.setItem('pasto.lecturas', JSON.stringify(lecturas));
+}
+
+const buf = [];                   // últimos lados normalizados
+let ladoActual = null;            // mediana
+let pos = null;                   // última posición GPS
+let watchId = null;
+
+// ===========================================================================
+// cámara + detección
+// ===========================================================================
+const video = $('video'), overlay = $('overlay'), octx = overlay.getContext('2d');
+const proc = document.createElement('canvas'), pctx = proc.getContext('2d', { willReadFrequently: true });
+const detector = new AR.Detector({ dictionaryName: 'ARUCO_4X4_1000', maxHammingDistance: 2 });
+
+async function iniciarCamara() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 960 } }, audio: false });
+    video.srcObject = stream;
+    await video.play();
+    // foco/zoom fijos si el celular lo permite: evita que cambie la escala
+    const track = stream.getVideoTracks()[0];
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    const adv = [];
+    if (caps.focusMode && caps.focusMode.includes('manual')) adv.push({ focusMode: 'manual' });
+    if (caps.zoom) adv.push({ zoom: caps.zoom.min });
+    if (adv.length) track.applyConstraints({ advanced: adv }).catch(() => {});
+    requestAnimationFrame(loop);
+  } catch (e) {
+    estado('Sin acceso a la cámara: ' + e.message, 'bad');
+  }
+}
+
+function loop() {
+  if (video.readyState >= 2) {
+    const w = PROC_W, h = Math.round(PROC_W * video.videoHeight / video.videoWidth);
+    if (proc.width !== w || proc.height !== h) { proc.width = w; proc.height = h; overlay.width = w; overlay.height = h; }
+    pctx.drawImage(video, 0, 0, w, h);
+    const img = pctx.getImageData(0, 0, w, h);
+    const m = detector.detect(img).find(x => x.id === MARKER_ID);
+    octx.clearRect(0, 0, w, h);
+    if (m) {
+      const c = m.corners;
+      let lado = 0;
+      for (let i = 0; i < 4; i++) { const a = c[i], b = c[(i + 1) % 4]; lado += Math.hypot(a.x - b.x, a.y - b.y) / 4; }
+      buf.push(lado / w); if (buf.length > SMOOTH) buf.shift();
+      ladoActual = mediana(buf);
+      octx.strokeStyle = '#7CFC00'; octx.lineWidth = 3; octx.beginPath();
+      c.forEach((p, i) => i ? octx.lineTo(p.x, p.y) : octx.moveTo(p.x, p.y)); octx.closePath(); octx.stroke();
+    } else {
+      buf.length = 0; ladoActual = null;
+    }
+    mostrarVivo();
+  }
+  requestAnimationFrame(loop);
+}
+
+const mediana = a => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
+
+// ===========================================================================
+// cálculo
+// ===========================================================================
+function distancia(lado) { return cfg.k / lado; }                  // cm
+function alturaCm() {
+  if (ladoActual == null || cfg.k == null || cfg.lado0 == null) return null;
+  return distancia(cfg.lado0) - distancia(ladoActual);
+}
+const kgDe = h => cfg.A + cfg.B * h;
+
+function mostrarVivo() {
+  const h = alturaCm();
+  if (ladoActual == null) {
+    estado('Marcador no detectado', 'bad');
+    $('kg').firstChild.nodeValue = '—'; $('alt').querySelector('b').textContent = '—';
+    $('btnLectura').disabled = true;
+    return;
+  }
+  if (cfg.k == null) { estado('Falta calibrar (Más)', 'warn'); $('btnLectura').disabled = true; return; }
+  estado('Plato detectado', 'ok');
+  $('kg').firstChild.nodeValue = fmt(kgDe(h), 0);
+  $('alt').querySelector('b').textContent = fmt(h, 1) + ' cm';
+  $('btnLectura').disabled = false;
+}
+
+function fmt(x, d) { return x.toLocaleString('es-AR', { minimumFractionDigits: d, maximumFractionDigits: d }); }
+function estado(t, cls) { const e = $('estado'); e.textContent = t; e.className = cls || ''; }
+function aviso(t) { const m = $('msg'); m.textContent = t; m.classList.add('ver'); clearTimeout(aviso.t); aviso.t = setTimeout(() => m.classList.remove('ver'), 1600); }
+
+function resumen() {
+  const del = lecturas.filter(l => l.potrero === cfg.potrero);
+  const n = del.length;
+  if (!n) { $('resumen').innerHTML = `<b>${esc(cfg.potrero)}</b>: sin lecturas todavía.`; return; }
+  const hs = del.map(l => l.altura_cm);
+  const media = hs.reduce((a, b) => a + b, 0) / n;
+  const sd = n > 1 ? Math.sqrt(hs.reduce((a, b) => a + (b - media) ** 2, 0) / (n - 1)) : 0;
+  $('resumen').innerHTML = `<b>${esc(cfg.potrero)}</b>: ${n} lectura${n > 1 ? 's' : ''}, promedio <b>${fmt(media, 1)} cm</b> (sd ${fmt(sd, 1)}), <b>${fmt(kgDe(media), 0)} kg MS/ha</b>.`;
+  $('datosInfo').textContent = `${lecturas.length} lecturas guardadas en ${new Set(lecturas.map(l => l.potrero)).size} potrero(s).`;
+}
+const esc = s => s.replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+
+// ===========================================================================
+// acciones
+// ===========================================================================
+$('btnLectura').onclick = () => {
+  const h = alturaCm(); if (h == null) return;
+  lecturas.push({ potrero: cfg.potrero, ts: new Date().toISOString(), altura_cm: +h.toFixed(2),
+    kg_ms_ha: Math.round(kgDe(h)), curva: cfg.curvaNombre,
+    lat: pos ? pos.coords.latitude : '', lon: pos ? pos.coords.longitude : '', gps_m: pos ? Math.round(pos.coords.accuracy) : '' });
+  guardar(); resumen();
+  if (cfg.vibrar && navigator.vibrate) navigator.vibrate(60);
+  aviso(`Lectura ${lecturas.filter(l => l.potrero === cfg.potrero).length}: ${fmt(h, 1)} cm`);
+};
+$('btnTara').onclick = () => {
+  if (ladoActual == null) return aviso('Primero tiene que verse el marcador');
+  if (cfg.k == null) return aviso('Calibrá primero desde Más');
+  cfg.lado0 = ladoActual; guardar(); aviso('Tara guardada');
+};
+$('btnDeshacer').onclick = () => {
+  const i = lecturas.map(l => l.potrero).lastIndexOf(cfg.potrero);
+  if (i < 0) return aviso('Nada que deshacer');
+  lecturas.splice(i, 1); guardar(); resumen(); aviso('Lectura borrada');
+};
+$('btnCalibrar').onclick = () => {
+  const d = parseFloat($('distReal').value);
+  if (!(d > 10)) return aviso('Ingresá la distancia en cm');
+  if (ladoActual == null) return aviso('Tiene que verse el marcador');
+  cfg.lado0 = ladoActual; cfg.k = d * ladoActual; guardar(); calibInfo(); aviso('Cámara calibrada y tara hecha');
+};
+function calibInfo() {
+  $('calibInfo').textContent = cfg.k ? `Calibrado. Con el plato en el suelo la cámara ve el marcador a ${fmt(distancia(cfg.lado0), 1)} cm.` : 'Todavía no calibrado.';
+}
+
+$('btnMas').onclick = () => { cargarForm(); $('mas').classList.add('abierto'); };
+$('cerrar').onclick = () => {
+  cfg.potrero = $('potrero').value.trim() || cfg.potrero;
+  cfg.curvaNombre = $('curvaNombre').value.trim() || cfg.curvaNombre;
+  cfg.A = parseFloat($('curvaA').value) || 0; cfg.B = parseFloat($('curvaB').value) || 0;
+  cfg.gps = $('gps').checked; cfg.vibrar = $('vibrar').checked;
+  guardar(); gpsToggle(); resumen(); $('mas').classList.remove('abierto');
+};
+function cargarForm() {
+  $('potrero').value = cfg.potrero; $('curvaNombre').value = cfg.curvaNombre;
+  $('curvaA').value = cfg.A; $('curvaB').value = cfg.B; $('gps').checked = cfg.gps; $('vibrar').checked = cfg.vibrar;
+  calibInfo(); resumen();
+}
+function gpsToggle() {
+  if (cfg.gps && watchId == null && navigator.geolocation)
+    watchId = navigator.geolocation.watchPosition(p => pos = p, () => aviso('GPS no disponible'), { enableHighAccuracy: true });
+  if (!cfg.gps && watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = null; pos = null; }
+}
+
+function csv() {
+  const cols = ['potrero', 'ts', 'altura_cm', 'kg_ms_ha', 'curva', 'lat', 'lon', 'gps_m'];
+  return [cols.join(','), ...lecturas.map(l => cols.map(c => `"${String(l[c] ?? '').replace(/"/g, '""')}"`).join(','))].join('\n');
+}
+const nombreCsv = () => `pasturometro_${new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-')}.csv`;
+$('btnCsv').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv()], { type: 'text/csv' })); a.download = nombreCsv(); a.click();
+};
+$('btnCompartir').onclick = async () => {
+  const f = new File([csv()], nombreCsv(), { type: 'text/csv' });
+  if (navigator.canShare && navigator.canShare({ files: [f] })) await navigator.share({ files: [f], title: 'Lecturas pasturómetro' });
+  else aviso('Este navegador no comparte archivos; usá Descargar');
+};
+$('btnBorrar').onclick = () => { if (confirm('¿Borrar todas las lecturas?')) { lecturas = []; guardar(); resumen(); } };
+
+// ===========================================================================
+// arranque
+// ===========================================================================
+resumen(); gpsToggle(); iniciarCamara();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

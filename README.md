@@ -37,7 +37,7 @@ en el celular `chrome://flags/#unsafely-treat-insecure-origin-as-secure` con
    sin tocar la calibración.
 3. Ponés el nombre del potrero en "Más", y por cada punto: apoyás, mirás que el
    estado diga *Plato detectado* y tocás **Lectura**. Vibra y suma al promedio.
-4. Al final, "Más" → **Descargar CSV* o **Compartir CSV** (WhatsApp, Drive, lo
+4. Al final, "Más" → **Descargar CSV** o **Compartir CSV** (WhatsApp, Drive, lo
    que sea). Columnas: potrero, ts, altura_cm, kg_ms_ha, curva, lat, lon, gps_m.
 
 Cómo calcula: la distancia cámara–marcador es inversamente proporcional al lado
