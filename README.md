@@ -71,3 +71,25 @@ mediana entre los marcadores visibles.
   cortando el cuadrado.
 - La curva A/B en "Más" acepta la de tus cortes; guardá una por especie/época y
   cambiá el nombre para que quede registrado en el CSV.
+
+## Curvas de materia seca
+
+`curvas.json` es la base pública de curvas de referencia que la app baja cuando
+hay señal y guarda para usar sin señal. Cada entrada trae `A`, `B`, especie,
+época, región y la fuente publicada. Hoy incluye las calibraciones de Ojeda,
+Quinodoz y Lezana (2021, RIA 47(1), INTA) para el sudoeste de Entre Ríos, y las
+ecuaciones estacionales neozelandesas de Tru-Test para raigrás, alfalfa,
+achicoria y llantén. Para agregar una curva de referencia, editá ese archivo.
+
+Las curvas propias no van acá. Se guardan en el celular y se mueven de tres
+maneras: código de exportación (funciona sin señal), backup en archivo, o
+sincronización contra un repositorio **privado** de GitHub con un token que se
+pega una vez en cada celular. Nunca subas curvas propias a este repo: es
+público, y codificarlas no sirve porque la app tendría que decodificarlas en el
+navegador.
+
+## Manual
+
+`manual.html` es el manual de campo: se abre desde "Más" en la app, queda
+cacheado por el service worker y funciona sin señal. `manual_pasturometro.pdf`
+es la misma cosa para imprimir. Los dos se generan del mismo contenido.

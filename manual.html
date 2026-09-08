@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16321F">
+<link rel="manifest" href="manifest.json">
+<title>Manual del pasturómetro — Pasturómetro</title>
+<style>
+  :root { --bg:#FAFAF7; --ink:#16321F; --ink-soft:#4E6153; --ok:#3B8F2E; --warn:#B86A12; --line:#D6DAD3; --card:#fff; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { margin:0; background:var(--bg); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.5; }
+  body { padding:0 0 60px; }
+  header { position:sticky; top:0; z-index:5; background:var(--ink); color:#fff;
+    padding:14px 20px calc(14px + env(safe-area-inset-top)); padding-top:calc(14px + env(safe-area-inset-top)); }
+  header h1 { font-size:21px; margin:0 0 2px; }
+  header p { margin:0; font-size:14px; opacity:.85; }
+  header a { color:#fff; text-decoration:none; font-weight:700; font-size:15px;
+    border:2px solid rgba(255,255,255,.5); border-radius:10px; padding:7px 12px; display:inline-block; margin-top:12px; }
+  main { max-width:760px; margin:0 auto; padding:0 20px; }
+  nav { background:var(--card); border:2px solid var(--line); border-radius:12px; padding:14px 16px; margin:18px 0 8px; }
+  nav b { display:block; font-size:15px; margin-bottom:8px; }
+  nav ol { margin:0; padding-left:20px; font-size:16px; }
+  nav li { margin:5px 0; }
+  nav a { color:var(--ink); }
+  section { margin:30px 0; scroll-margin-top:96px; }
+  h2 { font-size:20px; margin:0 0 10px; padding-bottom:7px; border-bottom:2px solid var(--line); }
+  p { margin:0 0 12px; font-size:16.5px; }
+  code { background:#EDEFEA; padding:1px 5px; border-radius:5px; font-size:.92em; }
+  ul,ol { margin:0 0 12px; padding-left:22px; font-size:16.5px; }
+  li { margin:7px 0; }
+  ol.pasos { counter-reset:p; list-style:none; padding-left:0; }
+  ol.pasos li { counter-increment:p; position:relative; padding-left:38px; margin:12px 0; }
+  ol.pasos li::before { content:counter(p); position:absolute; left:0; top:1px; width:26px; height:26px;
+    border-radius:50%; background:var(--ink); color:#fff; font-weight:700; font-size:14px;
+    display:flex; align-items:center; justify-content:center; }
+  .aviso { background:#FDF4E6; border-left:5px solid var(--warn); border-radius:0 10px 10px 0;
+    padding:12px 16px; margin:0 0 14px; font-size:16px; }
+  .formula { background:var(--ink); color:#fff; border-radius:10px; padding:14px 16px; margin:0 0 14px;
+    font-size:17px; font-weight:600; text-align:center; }
+  .tabla { overflow-x:auto; margin:0 0 14px; }
+  table { border-collapse:collapse; width:100%; min-width:460px; font-size:15px; background:var(--card); }
+  th { background:var(--ink); color:#fff; text-align:left; padding:9px 11px; font-size:14px; }
+  td { border-bottom:1px solid var(--line); padding:9px 11px; vertical-align:top; }
+  tr:nth-child(even) td { background:#F4F6F2; }
+  footer { max-width:760px; margin:36px auto 0; padding:0 20px; color:var(--ink-soft); font-size:14px; }
+  .top { display:inline-block; margin-top:10px; font-size:14px; color:var(--ink-soft); text-decoration:none; }
+  @media print { header { position:static; } nav { break-inside:avoid; } section { break-inside:avoid-page; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Manual del pasturómetro</h1>
+  <p>Cómo medir pasto con el plato y el celular, y cómo calibrar la curva de materia seca</p>
+  <a href="index.html">Volver a la app</a>
+</header>
+<main>
+<nav><b>Contenido</b><ol>
+<li><a href="#que-mide">Qué mide el aparato y qué no</a></li>
+<li><a href="#antes-de-salir">Antes de salir al lote</a></li>
+<li><a href="#calibrar-camara">Calibrar la cámara (una vez por celular)</a></li>
+<li><a href="#medir">Cómo medir un potrero</a></li>
+<li><a href="#cortes">Calibrar la curva: el protocolo de cortes</a></li>
+<li><a href="#regresion">De los cortes a los números A y B</a></li>
+<li><a href="#curvas">Curvas de referencia y curvas propias</a></li>
+<li><a href="#online">Tus curvas en línea</a></li>
+<li><a href="#problemas">Problemas frecuentes</a></li>
+<li><a href="#mantenimiento">Mantenimiento</a></li>
+<li><a href="#referencias">De dónde salen los números</a></li>
+</ol></nav>
+<section id="que-mide"><h2>Qué mide el aparato y qué no</h2>
+<p>El pasturómetro no mide pasto: mide <b>altura comprimida</b>. El plato baja por el caño hasta que el peso del plato equilibra la resistencia de la pastura, y la cámara calcula a qué altura quedó mirando el tamaño aparente de los marcadores. Esa altura en centímetros es el único dato físico que toma la app.</p>
+<p>Convertir esa altura en kilos de materia seca por hectárea es un segundo paso, y ahí entra la <b>curva</b>: <code>kg MS/ha = A + B × cm</code>. La curva es una relación estadística que vale para una especie, en una época, con el remanente al que vos cortás. No es una constante universal.</p>
+<div class="aviso">Sin una curva calibrada con tus propios cortes, el número de kg MS/ha que muestra la pantalla es una estimación prestada de otro campo. La altura en cm siempre es real; los kilos, hasta que no calibres, no.</div>
+<p>Por eso la app guarda las dos cosas en cada lectura: la altura en cm y los kg calculados, más el nombre de la curva usada. Si mañana recalibrás, podés recalcular todo el histórico a partir de las alturas.</p>
+<a class="top" href="#">Volver arriba</a></section>
+<section id="antes-de-salir"><h2>Antes de salir al lote</h2>
+<ol class="pasos"><li>El plato tiene que bajar solo por su peso, sin trabarse. Levantalo con la mano hasta arriba y soltalo: debe caer hasta la puntera sin engancharse. Si se traba, limpiá el caño y el interior del buje con un trapo apenas húmedo.</li><li>Mirá que los cuatro marcadores estén enteros, planos y sin barro. Uno despegado en una punta ya falsea la lectura de ese marcador.</li><li>Verificá que el celular esté firme en el holder y en la misma posición de siempre. Si se movió, hay que recalibrar antes de medir.</li><li>Cargá la app con señal una vez cada tanto para que baje las curvas de referencia actualizadas. Después funciona sin señal.</li><li>Batería: la cámara encendida consume. Para una recorrida larga, llevá cargador.</li></ol>
+<a class="top" href="#">Volver arriba</a></section>
+<section id="calibrar-camara"><h2>Calibrar la cámara (una vez por celular)</h2>
+<p>Esto fija la escala: le dice a la app a qué distancia real está el plato cuando los marcadores se ven de un cierto tamaño. Se hace una sola vez por celular, y se repite solo si movés el teléfono en el soporte o cambiás de teléfono.</p>
+<ol class="pasos"><li>Buscá un piso firme y liso: cemento, el piso del galpón, la caja de la camioneta. No lo hagas sobre pasto.</li><li>Apoyá el pasturómetro y dejá que el plato baje hasta el tope.</li><li>Con una cinta métrica, medí la distancia desde el lente de la cámara hasta la cara de arriba del plato. Medí derecho, no en diagonal. Anotá el número en centímetros con un decimal.</li><li>Abrí Más → Calibrar cámara, escribí esa distancia y tocá Calibrar. Fijate que los cuatro marcadores estén a la vista en ese momento.</li><li>La app te confirma con cuántos marcadores calibró. Si dice menos de cuatro, acomodá el aparato y repetí: querés los cuatro para tener redundancia.</li></ol>
+<div class="aviso">El texto de abajo del botón te dice cuándo calibraste y con qué marcadores. Si alguna vez ves “Marcadores sin calibrar: recalibrá”, es que la calibración guardada es de una versión anterior o de otro juego de marcadores.</div>
+<p>El botón <b>Tara</b> es distinto: rehace el cero conservando la escala. Sirve cuando cambiaste un marcador o cuando sospechás que el plato quedó apoyando distinto, pero no reemplaza a la calibración con cinta.</p>
+<a class="top" href="#">Volver arriba</a></section>
+<section id="medir"><h2>Cómo medir un potrero</h2>
+<p>El error más grande en una recorrida no es del aparato: es elegir dónde apoyar. Si mirás el pasto antes de decidir el punto, tu ojo te lleva a lo lindo o a lo pelado, y el promedio sale corrido.</p>
+<ol class="pasos"><li>Escribí el nombre del potrero en Más → Potrero antes de empezar. Las lecturas se agrupan por ese nombre.</li><li>Caminá el potrero en W o en zigzag, cruzando el lote de lado a lado. No recorras solo el borde ni la zona del bebedero.</li><li>Apoyá el aparato sin mirar el pasto, cada tantos pasos fijos. Contá los pasos, no elijas el lugar.</li><li>Esperá a que el número se estabilice y tocá Lectura. Si el estado dice “Marcador no detectado”, movete un poco: sombra dura o barro sobre un marcador.</li><li>Si te equivocaste en una lectura, Deshacer borra la última de ese potrero.</li></ol>
+<p>Cuántas lecturas: la referencia internacional es de 30 a 50 por potrero, alrededor de 40 por hectárea en lotes chicos. Menos de 20 y el promedio se mueve demasiado de una recorrida a la otra como para tomar decisiones de asignación.</p>
+<p>El resumen de la pantalla te muestra el promedio, el desvío estándar y los kg. El desvío te dice si el potrero es parejo: si es más de la mitad del promedio, no tiene sentido manejarlo como un solo lote.</p>
+<a class="top" href="#">Volver arriba</a></section>
+<section id="cortes"><h2>Calibrar la curva: el protocolo de cortes</h2>
+<p>Esta es la parte que convierte tu aparato en un instrumento tuyo. Se hace con un marco de 0,25 m² (50 × 50 cm de hierro o de caño fino), una tijera o cuchillo, bolsas, y una balanza de cocina que pese al gramo.</p>
+<ol class="pasos"><li>Elegí el punto ANTES de mirar el pasto. Buscá a propósito lugares de distinta altura: si todos los cortes salen parecidos, la recta no tiene de dónde agarrarse.</li><li>Apoyá el plato en el punto y anotá la altura en cm que da la app. Si tomás dos o tres lecturas pegadas, promedialas.</li><li>Apoyá el marco en el mismo lugar y cortá TODO lo que hay adentro, a la misma altura de remanente que dejan los animales. En general 2 a 3 cm del suelo. Si tu curva va a ser de forraje total, cortá a ras, pero después usala siempre así.</li><li>Metelo en una bolsa rotulada y pesalo verde en el momento, en gramos. El pasto pierde agua rápido: si no podés pesar ahí, cerrá la bolsa y pesá apenas llegás.</li><li>Secado: estufa a 60-65 °C durante 48 horas, hasta peso constante. Si no tenés estufa, microondas en tandas de 2 a 3 minutos al 50 %, pesando entre tanda y tanda hasta que no baje más. Cuidado que no se queme: si sale olor a tostado, ese corte se descarta.</li><li>Si el corte entero es mucho para secar, secá una submuestra: pesás la submuestra verde, la secás, y aplicás ese % de MS al peso verde total.</li></ol>
+<div class="formula">kg MS/ha = peso seco del marco (g) ÷ superficie del marco (m²) × 10</div>
+<p>Con el marco de 0,25 m² eso es simplemente <b>gramos de seco × 40</b>. La planilla lo hace sola.</p>
+<p>Cuántos cortes: mínimo 15 a 20 por curva, o sea por combinación de especie y época, repartidos en todo el rango de alturas que vas a medir después. Con menos de 10 la recta es un dibujo. Rehacé la calibración cuando cambia la estación, la especie dominante o el estado fenológico: el mismo centímetro de plato pesa distinto en pasto vegetativo que encañado.</p>
+<a class="top" href="#">Volver arriba</a></section>
+<section id="regresion"><h2>De los cortes a los números A y B</h2>
+<p>Cargá cada corte en una fila de la planilla <code>calibracion_materia_seca.xlsx</code>. Solo las columnas amarillas se escriben a mano; el % de MS, los gramos de seco y los kg MS/ha se calculan solos.</p>
+<p>La hoja <i>Curvas</i> hace la regresión por mínimos cuadrados para cada combinación de especie y época que le escribas, y te devuelve:</p>
+<ul><li><b>A</b>: la ordenada al origen, en kg MS/ha. Es lo que la recta predice con el plato en cero.</li><li><b>B</b>: la pendiente, en kg MS/ha por cada centímetro.</li><li><b>R²</b>: qué tan bien la recta explica los datos. Arriba de 0,7 es utilizable; abajo de 0,6 hay outliers o falta rango de alturas.</li><li><b>Error estándar</b>: el desvío típico de la estimación. En la práctica, más o menos ese valor alrededor de lo que predice la recta.</li><li><b>Rango de alturas</b>: entre qué mínimo y máximo cortaste. Fuera de ese rango la curva está extrapolando y no vale.</li></ul>
+<p>Si algún corte te quedó raro (se te voló pasto del marco, se quemó en el microondas), no lo borres: poné <b>S</b> en la columna Excluir y queda registrado pero fuera de la cuenta.</p>
+<p>Cuando el Estado de la fila diga OK, copiá A y B a la app: Más → Curva de materia seca, escribí el nombre y guardala como curva tuya.</p>
+<div class="aviso">Varias de las curvas de referencia argentinas tienen A = 0 a propósito: los autores forzaron la recta por el origen, porque con altura cero no hay pasto. Si tus datos te dan un A grande y negativo, revisá el rango: te faltan cortes en pasto bajo.</div>
+<a class="top" href="#">Volver arriba</a></section>
+<section id="curvas"><h2>Curvas de referencia y curvas propias</h2>
+<p>La app trae una lista de curvas de referencia publicadas, que se baja de internet cuando hay señal y queda guardada para usar sin señal. Están para que el aparato muestre un número desde el primer día, no para reemplazar tu calibración.</p>
+<div class="tabla"><table><thead><tr><th>Origen</th><th>Qué cubre</th><th>Cuándo te sirve</th></tr></thead><tbody>
+<tr><td>INTA / RIA, sudoeste de Entre Ríos</td><td>Pasturas base alfalfa y verdeos de invierno, por estación</td><td>Es lo más cercano a tu zona y a tu tipo de pastura. Buen punto de partida.</td></tr>
+<tr><td>Tru-Test y DairyNZ, Nueva Zelanda</td><td>Raigrás-trébol, cinco épocas del año</td><td>Sirve de orden de magnitud. Ojo: son pasturas y manejo muy distintos.</td></tr>
+<tr><td>Canterbury, Nueva Zelanda</td><td>Alfalfa, tres estaciones</td><td>Referencia para alfalfa pura.</td></tr>
+<tr><td>Waikato, Nueva Zelanda</td><td>Achicoria y llantén</td><td>Solo si tenés esas especies.</td></tr>
+</tbody></table></div>
+<p>Tus curvas propias se guardan en el celular y no salen de ahí salvo que vos las mandes. Podés tener varias: por ejemplo <i>Campo natural verano</i>, <i>Setaria primavera</i>, <i>Avena invierno</i>, y elegir la activa antes de recorrer cada potrero.</p>
+<div class="aviso">El nombre de la curva queda grabado en cada lectura y sale en el CSV. Si cambiás de curva a mitad de una recorrida vas a poder separarlas después, pero conviene no hacerlo.</div>
+<a class="top" href="#">Volver arriba</a></section>
+<section id="online"><h2>Tus curvas en línea</h2>
+<p>Las curvas de referencia son públicas y viven en el repositorio de la app: cualquiera las ve, y está bien, porque salen de trabajos publicados.</p>
+<p>Tus curvas son otra cosa: son el resultado de tu trabajo de cortes. Se guardan en el celular y tenés tres formas de moverlas o respaldarlas:</p>
+<ul><li><b>Código de exportación.</b> Copiás un texto corto que contiene todas tus curvas y lo pegás en otro celular, o te lo mandás por WhatsApp. Funciona sin señal.</li><li><b>Backup en archivo.</b> Descargás un JSON con curvas y lecturas y lo guardás donde quieras.</li><li><b>Repositorio privado de GitHub.</b> La app puede leer y escribir un archivo de curvas en un repositorio tuyo privado. Pegás una vez el token en cada celular y desde ahí sincronizás con un botón.</li></ul>
+<div class="aviso">Nunca pongas tus curvas propias en el repositorio público de la app, ni siquiera codificadas. Todo lo que está ahí lo sirve GitHub Pages a cualquiera, y si la app tiene que decodificarlo en el navegador, la clave viaja con la app. Además git guarda el historial para siempre: borrarlo después no lo borra.</div>
+<p>El token de GitHub queda guardado solo en ese celular. Si perdés el teléfono, entrá a GitHub y revocá el token: con eso el acceso se corta, sin tocar nada más.</p>
+<a class="top" href="#">Volver arriba</a></section>
+<section id="problemas"><h2>Problemas frecuentes</h2>
+<div class="tabla"><table><thead><tr><th>Qué ves</th><th>Qué suele ser</th><th>Qué hacer</th></tr></thead><tbody>
+<tr><td>“Marcador no detectado”</td><td>Sombra dura, barro, o el plato fuera de cuadro</td><td>Girá el cuerpo para cambiar la luz, limpiá los marcadores, verificá que el celular no se haya corrido</td></tr>
+<tr><td>“Marcadores sin calibrar: recalibrá”</td><td>La calibración guardada es de otra versión o de otro juego de marcadores</td><td>Recalibrá con cinta, con los cuatro a la vista</td></tr>
+<tr><td>El número salta mucho parado en un punto</td><td>El plato está trabado a medio camino, o el buje tiene juego</td><td>Levantá y soltá el plato; si sigue, limpiá o revisá el buje</td></tr>
+<tr><td>Lecturas más altas que lo que ves</td><td>El plato se traba y queda colgado sobre el pasto</td><td>Limpiar caño y buje; si el buje quedó apretado, lijarlo apenas</td></tr>
+<tr><td>Todo el potrero da muy parecido</td><td>Estás eligiendo dónde apoyar sin darte cuenta</td><td>Contá pasos y apoyá sin mirar</td></tr>
+<tr><td>Los kg no tienen sentido</td><td>Curva equivocada o sin calibrar</td><td>Fijate qué curva está activa; si es de referencia, hacé tus cortes</td></tr>
+<tr><td>La app no se actualiza</td><td>El navegador guardó la versión vieja</td><td>Abrila con señal y cerrala del todo; si sigue, borrá los datos del sitio y volvé a instalarla</td></tr>
+</tbody></table></div>
+<a class="top" href="#">Volver arriba</a></section>
+<section id="mantenimiento"><h2>Mantenimiento</h2>
+<ul><li>Después de cada recorrida embarrada, pasá un trapo por el caño y por dentro del buje. El barro seco es lo que más desgasta.</li><li>No guardes el aparato apoyado sobre el plato: colgalo del caño o acostalo.</li><li>Revisá los marcadores cada tantas semanas. Si uno se despega o se raya, reimprimí la hoja entera y recalibrá: los cuatro tienen que ser idénticos entre sí.</li><li>Si cambiás el plato, el caño o el buje, cambia el peso o la escala: recalibrá y volvé a hacer cortes.</li><li>Descargá el CSV cada tanto. Las lecturas viven en el navegador del celular y se pierden si borrás los datos del sitio.</li></ul>
+<a class="top" href="#">Volver arriba</a></section>
+<section id="referencias"><h2>De dónde salen los números</h2>
+<ul><li>Ojeda, J. J.; Quinodoz, J.; Lezana, L. (2021). Estimación de disponibilidad forrajera de pasturas base alfalfa y verdeos invernales en el sudoeste de Entre Ríos. RIA. Revista de Investigaciones Agropecuarias, 47(1):26-45, INTA.</li><li>Tru-Test y DairyNZ: ecuaciones estacionales para raigrás-trébol, recopiladas en pasture.io/measurement-tools/rising-plate-meter-equations</li><li>SUPER-G (2023). Practical use of the rising plate meter for yield estimation. Ficha técnica europea: discos de 30 a 35 cm, 200 a 482 g, 30 a 50 lecturas por potrero.</li><li>University of Kentucky (AGR-277). Using a Rising Plate Meter to Measure Pasture Growth: A Practical Guide.</li><li>INTA. Pasturómetro digital: equipo electromecánico con plato de 36 cm y coeficientes precargados por tipo de pastura.</li></ul>
+<a class="top" href="#">Volver arriba</a></section>
+</main>
+<footer>Pasturómetro de plato · Chajarí, Entre Ríos · Este manual funciona sin señal:
+queda guardado en el celular junto con la app.</footer>
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function(){});
+</script>
+</body>
+</html>

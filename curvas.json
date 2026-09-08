@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "actualizado": "2026-09-08",
+  "formula": "kg MS/ha = A + B x altura_comprimida_cm",
+  "nota": "Curvas de referencia publicadas. Sirven para arrancar, no reemplazan tu propia calibracion: la pendiente depende de la presion del plato, de la especie y de la altura de remanente con la que se corto. Las de Nueva Zelanda son para plato estandar de 0,098 m2 sobre raigras-trebol.",
+  "curvas": [
+    { "id": "ar-er-alfalfa-anual",     "nombre": "Alfalfa - anual",              "especie": "Pastura base alfalfa", "epoca": "Anual",     "region": "Entre Rios (SO), Argentina", "A": 0, "B": 170.1, "r2": 0.68, "n": 135, "fuente": "Ojeda, Quinodoz y Lezana (2021), RIA 47(1):26-45, INTA" },
+    { "id": "ar-er-alfalfa-otono",     "nombre": "Alfalfa - otono",              "especie": "Pastura base alfalfa", "epoca": "Otono",     "region": "Entre Rios (SO), Argentina", "A": 0, "B": 153.0, "r2": 0.67, "n": 34,  "fuente": "Ojeda, Quinodoz y Lezana (2021), RIA 47(1):26-45, INTA" },
+    { "id": "ar-er-alfalfa-invierno",  "nombre": "Alfalfa - invierno",           "especie": "Pastura base alfalfa", "epoca": "Invierno",  "region": "Entre Rios (SO), Argentina", "A": 0, "B": 179.6, "r2": 0.69, "n": 37,  "fuente": "Ojeda, Quinodoz y Lezana (2021), RIA 47(1):26-45, INTA" },
+    { "id": "ar-er-alfalfa-primavera", "nombre": "Alfalfa - primavera",          "especie": "Pastura base alfalfa", "epoca": "Primavera", "region": "Entre Rios (SO), Argentina", "A": 0, "B": 195.6, "r2": 0.68, "n": 32,  "fuente": "Ojeda, Quinodoz y Lezana (2021), RIA 47(1):26-45, INTA" },
+    { "id": "ar-er-alfalfa-verano",    "nombre": "Alfalfa - verano",             "especie": "Pastura base alfalfa", "epoca": "Verano",    "region": "Entre Rios (SO), Argentina", "A": 0, "B": 194.2, "r2": 0.74, "n": 32,  "fuente": "Ojeda, Quinodoz y Lezana (2021), RIA 47(1):26-45, INTA" },
+    { "id": "ar-er-verdeo-anual",      "nombre": "Verdeo de invierno - anual",   "especie": "Raigras / avena",      "epoca": "Anual",     "region": "Entre Rios (SO), Argentina", "A": 0, "B": 151.7, "r2": 0.78, "n": 167, "fuente": "Ojeda, Quinodoz y Lezana (2021), RIA 47(1):26-45, INTA" },
+    { "id": "ar-er-verdeo-otono",      "nombre": "Verdeo de invierno - otono",   "especie": "Raigras / avena",      "epoca": "Otono",     "region": "Entre Rios (SO), Argentina", "A": 0, "B": 149.0, "r2": 0.83, "n": 62,  "fuente": "Ojeda, Quinodoz y Lezana (2021), RIA 47(1):26-45, INTA" },
+    { "id": "ar-er-verdeo-invierno",   "nombre": "Verdeo de invierno - invierno","especie": "Raigras / avena",      "epoca": "Invierno",  "region": "Entre Rios (SO), Argentina", "A": 0, "B": 154.2, "r2": 0.71, "n": 99,  "fuente": "Ojeda, Quinodoz y Lezana (2021), RIA 47(1):26-45, INTA" },
+    { "id": "ar-er-verdeo-primavera",  "nombre": "Verdeo de invierno - primavera","especie": "Raigras / avena",     "epoca": "Primavera", "region": "Entre Rios (SO), Argentina", "A": 0, "B": 149.0, "r2": null, "n": 6,   "fuente": "Ojeda, Quinodoz y Lezana (2021), RIA 47(1):26-45, INTA", "aviso": "Solo 6 cortes: usar con reserva" },
+
+    { "id": "nz-rye-inv-primav",  "nombre": "Raigras - invierno y principio de primavera", "especie": "Raigras-trebol", "epoca": "Invierno / primavera temprana", "region": "Nueva Zelanda", "A": 640,  "B": 125, "r2": null, "n": null, "fuente": "Tru-Test / pasture.io" },
+    { "id": "nz-rye-primav-ver",  "nombre": "Raigras - fin de primavera y principio de verano", "especie": "Raigras-trebol", "epoca": "Primavera tardia / verano temprano", "region": "Nueva Zelanda", "A": 990, "B": 130, "r2": null, "n": null, "fuente": "Tru-Test / pasture.io" },
+    { "id": "nz-rye-verano",      "nombre": "Raigras - mediados de verano",  "especie": "Raigras-trebol", "epoca": "Verano",  "region": "Nueva Zelanda", "A": 1480, "B": 165, "r2": null, "n": null, "fuente": "Tru-Test / pasture.io" },
+    { "id": "nz-rye-otono-temp",  "nombre": "Raigras - principio de otono",  "especie": "Raigras-trebol", "epoca": "Otono temprano", "region": "Nueva Zelanda", "A": 1180, "B": 159, "r2": null, "n": null, "fuente": "Tru-Test / pasture.io" },
+    { "id": "nz-rye-otono-tard",  "nombre": "Raigras - fin de otono",        "especie": "Raigras-trebol", "epoca": "Otono tardio",   "region": "Nueva Zelanda", "A": 970,  "B": 157, "r2": null, "n": null, "fuente": "Tru-Test / pasture.io" },
+
+    { "id": "nz-alf-primavera", "nombre": "Alfalfa Canterbury - primavera", "especie": "Alfalfa", "epoca": "Primavera", "region": "Canterbury, Nueva Zelanda", "A": 604, "B": 83,   "r2": null, "n": null, "fuente": "pasture.io" },
+    { "id": "nz-alf-verano",    "nombre": "Alfalfa Canterbury - verano",    "especie": "Alfalfa", "epoca": "Verano",    "region": "Canterbury, Nueva Zelanda", "A": 304, "B": 72,   "r2": null, "n": null, "fuente": "pasture.io" },
+    { "id": "nz-alf-otono",     "nombre": "Alfalfa Canterbury - otono",     "especie": "Alfalfa", "epoca": "Otono",     "region": "Canterbury, Nueva Zelanda", "A": 461, "B": 39.5, "r2": null, "n": null, "fuente": "pasture.io" },
+
+    { "id": "nz-achicoria", "nombre": "Achicoria - verano y otono", "especie": "Achicoria", "epoca": "Verano / otono", "region": "Waikato, Nueva Zelanda", "A": 235, "B": 86, "r2": null, "n": null, "fuente": "pasture.io" },
+    { "id": "nz-llanten",   "nombre": "Llanten - verano y otono",   "especie": "Llanten",   "epoca": "Verano / otono", "region": "Waikato, Nueva Zelanda", "A": 455, "B": 94, "r2": null, "n": null, "fuente": "pasture.io" }
+  ]
+}

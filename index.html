@@ -73,6 +73,13 @@
   #cerrar { position: sticky; top: 0; float: right; background: var(--ink); color: #fff; padding: 10px 16px; font-weight: 700; }
   .toggle { display: flex; align-items: center; gap: 10px; font-size: 16px; margin: 12px 0; }
   .toggle input { width: 22px; height: 22px; }
+  select { width: 100%; font: inherit; font-size: 18px; padding: 10px 12px;
+    border: 2px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink); }
+  select:focus { outline: none; border-color: var(--ok); }
+  a.btn { display: block; text-align: center; text-decoration: none; }
+  #mas a { color: var(--ok); }
+  .mini { font-size: 13.5px !important; line-height: 1.45; }
+  .fila .btn.corto { width: auto; flex: 0 0 auto; margin-top: 0; padding: 12px 18px; }
   #msg { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); background: var(--ink); color: #fff;
     padding: 10px 18px; border-radius: 999px; font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
   #msg.ver { opacity: 1; }
@@ -102,6 +109,7 @@
 <div id="mas">
   <button id="cerrar">Listo</button>
   <h2>Ajustes</h2>
+  <a class="btn" href="manual.html">Manual y procedimientos</a>
 
   <h3>Potrero</h3>
   <input type="text" id="potrero" placeholder="Nombre del potrero o lote">
@@ -116,13 +124,41 @@
   <p id="calibInfo"></p>
 
   <h3>Curva de materia seca</h3>
-  <p>kg MS/ha = A + B × altura en cm. La curva que viene cargada es un placeholder tipo raigrás; reemplazala con tus cortes.</p>
-  <label for="curvaNombre">Nombre de la curva</label>
-  <input type="text" id="curvaNombre">
+  <p>kg MS/ha = A + B × altura en cm. Elegí una curva de referencia para arrancar, y reemplazala por la tuya cuando tengas los cortes. <a href="manual.html#cortes">Cómo se calibra</a>.</p>
+  <label for="curvaSel">Curva activa</label>
+  <select id="curvaSel"></select>
+  <p id="curvaInfo" class="mini"></p>
   <div class="fila">
     <div><label for="curvaA">A (intercepto)</label><input type="number" id="curvaA" inputmode="decimal" step="1"></div>
-    <div><label for="curvaB">B (kg por cm)</label><input type="number" id="curvaB" inputmode="decimal" step="1"></div>
+    <div><label for="curvaB">B (kg por cm)</label><input type="number" id="curvaB" inputmode="decimal" step="0.1"></div>
   </div>
+  <label for="curvaNombre">Nombre de la curva</label>
+  <input type="text" id="curvaNombre">
+  <button class="btn" id="btnGuardarCurva">Guardar como curva mía</button>
+  <button class="btn rojo" id="btnBorrarCurva">Borrar esta curva mía</button>
+
+  <h3>Mis curvas: respaldo y traspaso</h3>
+  <p class="mini">Tus curvas se guardan en este celular. Las de referencia se bajan solas cuando hay señal.</p>
+  <button class="btn" id="btnExportar">Copiar código de mis curvas</button>
+  <label for="codImport">Pegar un código para importar</label>
+  <div class="fila">
+    <input type="text" id="codImport" placeholder="PMC1..." autocapitalize="off" autocorrect="off" spellcheck="false">
+    <button class="btn corto" id="btnImportar">Importar</button>
+  </div>
+
+  <h3>Repositorio privado (opcional)</h3>
+  <p class="mini">Sincroniza tus curvas contra un repositorio <b>privado</b> tuyo de GitHub. El token queda guardado solo en este celular. Nunca uses para esto el repo público de la app. <a href="manual.html#online">Cómo se configura</a>.</p>
+  <label for="ghRepo">usuario/repositorio</label>
+  <input type="text" id="ghRepo" placeholder="JorgeGiaco/pasturometro-curvas" autocapitalize="off" autocorrect="off" spellcheck="false">
+  <label for="ghPath">archivo dentro del repo</label>
+  <input type="text" id="ghPath" placeholder="mis_curvas.json" autocapitalize="off" autocorrect="off" spellcheck="false">
+  <label for="ghToken">token con permiso Contents: read and write</label>
+  <input type="password" id="ghToken" placeholder="github_pat_..." autocapitalize="off" autocorrect="off" spellcheck="false">
+  <div class="fila">
+    <button class="btn" id="btnBajar">Bajar</button>
+    <button class="btn lleno" id="btnSubir">Subir</button>
+  </div>
+  <p id="ghInfo" class="mini"></p>
 
   <h3>Opciones</h3>
   <label class="toggle"><input type="checkbox" id="gps"> Guardar posición GPS en cada lectura</label>
@@ -149,8 +185,9 @@ const SMOOTH = 7;
 
 const cfg = Object.assign({
   potrero: 'potrero1',
-  curvaNombre: 'placeholder_raigras',
-  A: 500, B: 140,
+  curvaNombre: 'Alfalfa - anual (referencia)',
+  curvaRef: 'ref:ar-er-alfalfa-anual',
+  A: 0, B: 170.1,
   D0: null,     // distancia real camara-plato con el plato en el suelo, en cm
   lado0: null,  // { id: lado normalizado } medido con el plato en el suelo
   gps: false, vibrar: true,
@@ -320,13 +357,15 @@ $('cerrar').onclick = () => {
   cfg.potrero = $('potrero').value.trim() || cfg.potrero;
   cfg.curvaNombre = $('curvaNombre').value.trim() || cfg.curvaNombre;
   cfg.A = parseFloat($('curvaA').value) || 0; cfg.B = parseFloat($('curvaB').value) || 0;
+  cfg.curvaRef = $('curvaSel').value;
   cfg.gps = $('gps').checked; cfg.vibrar = $('vibrar').checked;
   guardar(); gpsToggle(); resumen(); $('mas').classList.remove('abierto');
 };
 function cargarForm() {
   $('potrero').value = cfg.potrero; $('curvaNombre').value = cfg.curvaNombre;
   $('curvaA').value = cfg.A; $('curvaB').value = cfg.B; $('gps').checked = cfg.gps; $('vibrar').checked = cfg.vibrar;
-  calibInfo(); resumen();
+  $('ghRepo').value = gh.repo; $('ghPath').value = gh.path; $('ghToken').value = gh.token;
+  llenarCurvas(); calibInfo(); resumen();
 }
 function gpsToggle() {
   if (cfg.gps && watchId == null && navigator.geolocation)
@@ -350,9 +389,192 @@ $('btnCompartir').onclick = async () => {
 };
 $('btnBorrar').onclick = () => { if (confirm('¿Borrar todas las lecturas?')) { lecturas = []; guardar(); resumen(); } };
 
+
+// ===========================================================================
+// curvas: referencia (curvas.json) + propias (guardadas en este celular)
+// ===========================================================================
+let refCurvas = JSON.parse(localStorage.getItem('pasto.ref') || '[]');
+let misCurvas = JSON.parse(localStorage.getItem('pasto.curvas') || '[]');
+const gh = Object.assign({ repo: '', path: 'mis_curvas.json', token: '' },
+                         JSON.parse(localStorage.getItem('pasto.gh') || '{}'));
+
+const guardarCurvas = () => localStorage.setItem('pasto.curvas', JSON.stringify(misCurvas));
+const slug = s => s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const b64e = s => btoa(unescape(encodeURIComponent(s)));
+const b64d = s => decodeURIComponent(escape(atob(s)));
+const url64e = s => b64e(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const url64d = s => b64d(s.replace(/-/g, '+').replace(/_/g, '/'));
+const suma = s => { let h = 5381; for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(16).padStart(8, '0').slice(0, 6); };
+
+async function bajarReferencia() {
+  try {
+    const r = await fetch('curvas.json', { cache: 'no-cache' });
+    if (!r.ok) throw new Error('http ' + r.status);
+    const j = await r.json();
+    if (Array.isArray(j.curvas) && j.curvas.length) {
+      refCurvas = j.curvas;
+      localStorage.setItem('pasto.ref', JSON.stringify(refCurvas));
+    }
+  } catch (e) { /* sin senal: sigue valiendo la copia guardada */ }
+  llenarCurvas();
+}
+
+function llenarCurvas() {
+  const sel = $('curvaSel'); if (!sel) return;
+  sel.innerHTML = '';
+  const grupo = (titulo, arr, pref) => {
+    if (!arr.length) return;
+    const g = document.createElement('optgroup'); g.label = titulo;
+    arr.forEach(c => { const o = document.createElement('option');
+      o.value = pref + c.id; o.textContent = c.nombre; g.appendChild(o); });
+    sel.appendChild(g);
+  };
+  grupo('Mis curvas', misCurvas, 'mia:');
+  grupo('Referencia', refCurvas, 'ref:');
+  const o = document.createElement('option'); o.value = 'manual';
+  o.textContent = 'Escribir A y B a mano'; sel.appendChild(o);
+  sel.value = cfg.curvaRef && [...sel.options].some(x => x.value === cfg.curvaRef) ? cfg.curvaRef : 'manual';
+  infoCurva();
+}
+
+const buscarCurva = v => {
+  if (!v || v === 'manual') return null;
+  const i = v.indexOf(':'); if (i < 0) return null;
+  const arr = v.slice(0, i) === 'mia' ? misCurvas : refCurvas;
+  return arr.find(c => c.id === v.slice(i + 1)) || null;
+};
+
+function infoCurva() {
+  const c = buscarCurva($('curvaSel').value), p = $('curvaInfo');
+  if (!c) { p.textContent = 'A y B escritos a mano.'; return; }
+  const b = [];
+  if (c.especie) b.push(c.especie);
+  if (c.epoca) b.push(c.epoca);
+  if (c.region) b.push(c.region);
+  if (c.r2 != null) b.push('R² ' + c.r2);
+  if (c.n != null) b.push('n = ' + c.n);
+  if (c.fuente) b.push(c.fuente);
+  if (c.aviso) b.push(c.aviso);
+  p.textContent = b.join(' · ');
+}
+
+function fusionar(arr) {
+  let n = 0;
+  (arr || []).forEach(c => {
+    if (!c || !c.id || typeof c.B !== 'number') return;
+    const i = misCurvas.findIndex(x => x.id === c.id);
+    if (i < 0) { misCurvas.push(c); n++; }
+    else if ((c.ts || '') > (misCurvas[i].ts || '')) { misCurvas[i] = c; n++; }
+  });
+  guardarCurvas(); return n;
+}
+
+$('curvaSel').onchange = () => {
+  const c = buscarCurva($('curvaSel').value);
+  if (c) { $('curvaA').value = c.A; $('curvaB').value = c.B; $('curvaNombre').value = c.nombre; }
+  infoCurva();
+};
+
+$('btnGuardarCurva').onclick = () => {
+  const nombre = $('curvaNombre').value.trim();
+  if (!nombre) return aviso('Ponele un nombre a la curva');
+  const A = parseFloat($('curvaA').value) || 0, B = parseFloat($('curvaB').value) || 0;
+  if (!B) return aviso('B no puede quedar en cero');
+  const id = slug(nombre) || ('curva-' + Date.now());
+  const c = { id, nombre, A, B, ts: new Date().toISOString(), propia: true };
+  const i = misCurvas.findIndex(x => x.id === id);
+  if (i >= 0) misCurvas[i] = c; else misCurvas.push(c);
+  guardarCurvas();
+  cfg.curvaRef = 'mia:' + id; cfg.curvaNombre = nombre; cfg.A = A; cfg.B = B; guardar();
+  llenarCurvas(); resumen(); aviso('Curva guardada');
+};
+
+$('btnBorrarCurva').onclick = () => {
+  const v = $('curvaSel').value;
+  if (v.slice(0, 4) !== 'mia:') return aviso('Solo se borran las curvas propias');
+  if (!confirm('¿Borrar esta curva tuya?')) return;
+  misCurvas = misCurvas.filter(c => c.id !== v.slice(4));
+  guardarCurvas(); cfg.curvaRef = 'manual'; guardar(); llenarCurvas(); aviso('Curva borrada');
+};
+
+$('btnExportar').onclick = async () => {
+  if (!misCurvas.length) return aviso('Todavía no tenés curvas propias');
+  const p = url64e(JSON.stringify(misCurvas));
+  const cod = 'PMC1.' + p + '.' + suma(p);
+  try { await navigator.clipboard.writeText(cod); aviso('Código copiado'); }
+  catch (e) { prompt('Copiá este código y pegalo en el otro celular:', cod); }
+};
+
+$('btnImportar').onclick = () => {
+  const t = $('codImport').value.trim();
+  const m = /^PMC1\.([A-Za-z0-9_-]+)\.([0-9a-f]{6})$/.exec(t);
+  if (!m) return aviso('Ese código no tiene el formato esperado');
+  if (suma(m[1]) !== m[2]) return aviso('El código está cortado o mal copiado');
+  let arr; try { arr = JSON.parse(url64d(m[1])); } catch (e) { return aviso('No se pudo leer el código'); }
+  if (!Array.isArray(arr)) return aviso('El código no trae curvas');
+  const n = fusionar(arr);
+  $('codImport').value = ''; llenarCurvas();
+  aviso(n ? (n + (n === 1 ? ' curva importada' : ' curvas importadas')) : 'Sin novedades');
+};
+
+// --- repositorio privado ---------------------------------------------------
+function ghLeerForm() {
+  gh.repo = $('ghRepo').value.trim().replace(/^https?:\/\/github\.com\//, '').replace(/\/$/, '');
+  gh.path = $('ghPath').value.trim() || 'mis_curvas.json';
+  gh.token = $('ghToken').value.trim();
+  localStorage.setItem('pasto.gh', JSON.stringify(gh));
+}
+const ghUrl = () => 'https://api.github.com/repos/' + gh.repo + '/contents/' + gh.path;
+const ghHead = () => ({ Authorization: 'Bearer ' + gh.token, Accept: 'application/vnd.github+json',
+                        'X-GitHub-Api-Version': '2022-11-28' });
+
+async function ghBajar() {
+  const r = await fetch(ghUrl(), { headers: ghHead(), cache: 'no-store' });
+  if (r.status === 404) return { curvas: [], sha: null };
+  if (r.status === 401 || r.status === 403) throw new Error('el token no tiene permiso');
+  if (!r.ok) throw new Error('GitHub ' + r.status);
+  const j = await r.json();
+  let d; try { d = JSON.parse(b64d(j.content.replace(/\s/g, ''))); }
+  catch (e) { throw new Error('el archivo del repo no es JSON válido'); }
+  return { curvas: Array.isArray(d.curvas) ? d.curvas : [], sha: j.sha };
+}
+
+$('btnBajar').onclick = async () => {
+  ghLeerForm();
+  if (!gh.repo || !gh.token) return aviso('Falta el repositorio o el token');
+  $('ghInfo').textContent = 'Bajando…';
+  try {
+    const { curvas } = await ghBajar();
+    const n = fusionar(curvas); llenarCurvas();
+    $('ghInfo').textContent = 'En el repo hay ' + curvas.length + '; nuevas o actualizadas acá: ' + n + '.';
+  } catch (e) { $('ghInfo').textContent = 'No se pudo bajar: ' + e.message; }
+};
+
+$('btnSubir').onclick = async () => {
+  ghLeerForm();
+  if (!gh.repo || !gh.token) return aviso('Falta el repositorio o el token');
+  if (!misCurvas.length) return aviso('Todavía no tenés curvas propias');
+  $('ghInfo').textContent = 'Subiendo…';
+  try {
+    let sha = null;
+    try { const r = await ghBajar(); sha = r.sha; fusionar(r.curvas); }
+    catch (e) { if (String(e.message).indexOf('permiso') >= 0) throw e; }
+    const cuerpo = { version: 1, actualizado: new Date().toISOString(), curvas: misCurvas };
+    const body = { message: 'curvas del pasturometro', content: b64e(JSON.stringify(cuerpo, null, 2)) };
+    if (sha) body.sha = sha;
+    const r = await fetch(ghUrl(), { method: 'PUT', headers: ghHead(), body: JSON.stringify(body) });
+    if (!r.ok) throw new Error('GitHub ' + r.status);
+    llenarCurvas();
+    $('ghInfo').textContent = 'Subidas ' + misCurvas.length + ' curvas a ' + gh.repo + '/' + gh.path + '.';
+  } catch (e) { $('ghInfo').textContent = 'No se pudo subir: ' + e.message; }
+};
+
 // ===========================================================================
 // arranque
 // ===========================================================================
+llenarCurvas(); bajarReferencia();
 resumen(); gpsToggle(); iniciarCamara();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
