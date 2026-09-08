@@ -1,0 +1,16 @@
+# Prototipos de escritorio (ArUco / ToF+ESP32): quedan locales, no van al repo de la PWA
+prototipos/
+
+# Material de referencia y descargas
+referencias/
+_descargas/
+calibracion/
+
+# Python
+__pycache__/
+*.pyc
+
+# Sistema / OneDrive
+desktop.ini
+Thumbs.db
+.DS_Store

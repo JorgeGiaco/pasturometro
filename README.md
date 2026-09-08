@@ -9,6 +9,7 @@ aruco.js        js-aruco2 (detección de marcadores) empaquetado
 manifest.json   para "Agregar a pantalla de inicio"
 sw.js           service worker: cachea todo para uso offline
 icon-*.png      íconos
+marcadores_plato.pdf  las 4 piezas para imprimir y pegar en el plato
 ```
 
 ## Publicar (5 minutos, GitHub Pages)
@@ -27,12 +28,25 @@ Chrome bloquea la cámara en HTTP salvo localhost, así que para esta prueba act
 en el celular `chrome://flags/#unsafely-treat-insecure-origin-as-secure` con
 `http://IP_DE_LA_PC:8000`. Para el campo, usá la versión publicada.
 
+## Marcadores
+
+El marcador ArUco es cuadrado por definición: el detector busca contornos de
+cuatro lados con borde negro. No puede ser redondo ni tener un agujero en el
+medio. Pero el **plato sí es redondo**: se pegan cuatro marcadores chicos
+repartidos alrededor del buje, y la barra pasa por el centro sin tapar nada.
+
+Imprimí `marcadores_plato.pdf` (viene con las cuatro piezas y el esquema de
+montaje). Con que se vea uno alcanza para medir; los cuatro son redundancia
+para barro, sombra o un ángulo malo. Cada uno se normaliza contra su propia
+lectura de tara, así que la medición no cambia según cuántos se vean.
+
 ## Uso
 
-1. **Primera vez, "Más" → Calibrar cámara.** Plato apoyado en piso firme, medí
-   con cinta del lente al marcador (cm), escribilo, tocá Calibrar. Eso fija la
-   escala del celular y hace la tara. Se hace una sola vez por celular; si
-   cambiás el soporte o la altura de montaje, repetila.
+1. **Primera vez, "Más" → Calibrar cámara.** Plato apoyado en piso firme y los
+   cuatro marcadores a la vista, medí con cinta del lente al plato (cm),
+   escribilo, tocá Calibrar. Eso fija la escala del celular y hace la tara. Se
+   hace una sola vez por celular; si cambiás el soporte o la altura de montaje,
+   o si reimprimís los marcadores, repetila.
 2. **Tara** en el campo si querés: plato en el suelo, tocá Tara. Rehace el cero
    sin tocar la calibración.
 3. Ponés el nombre del potrero en "Más", y por cada punto: apoyás, mirás que el
@@ -44,7 +58,8 @@ Cómo calcula: la distancia cámara–marcador es inversamente proporcional al l
 en píxeles del marcador. Con una sola distancia real conocida (la de la
 calibración) queda determinada la constante y se obtiene
 `altura = D(suelo) − D(actual)` sin necesidad de intrínsecos de cámara ni de saber
-el tamaño exacto del marcador. Mediana de los últimos 7 frames.
+el tamaño exacto del marcador. Mediana de los últimos 7 frames por marcador, y
+mediana entre los marcadores visibles.
 
 ## Consejos de campo
 

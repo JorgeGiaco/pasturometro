@@ -107,8 +107,8 @@
   <input type="text" id="potrero" placeholder="Nombre del potrero o lote">
 
   <h3>Calibrar cámara (una vez por celular)</h3>
-  <p>Con el plato apoyado en el suelo firme, medí con cinta la distancia del lente de la cámara al marcador y anotala acá. Esto fija la escala y hace la tara al mismo tiempo.</p>
-  <label for="distReal">Distancia real lente a marcador, en cm</label>
+  <p>Con el plato apoyado en el suelo firme y los cuatro marcadores a la vista, medí con cinta la distancia del lente al plato y anotala acá. Esto fija la escala y hace la tara al mismo tiempo.</p>
+  <label for="distReal">Distancia real lente a plato, en cm</label>
   <div class="fila">
     <input type="number" id="distReal" inputmode="decimal" step="0.1" placeholder="p. ej. 92.5">
     <button class="btn lleno" id="btnCalibrar">Calibrar</button>
@@ -143,7 +143,7 @@
 // estado
 // ===========================================================================
 const $ = id => document.getElementById(id);
-const MARKER_ID = 0;
+const MARKER_IDS = [0, 1, 2, 3];   // los 4 de la hoja imprimible; con uno solo ya mide
 const PROC_W = 480;               // ancho de procesamiento; solo importan proporciones
 const SMOOTH = 7;
 
@@ -151,8 +151,8 @@ const cfg = Object.assign({
   potrero: 'potrero1',
   curvaNombre: 'placeholder_raigras',
   A: 500, B: 140,
-  k: null,      // k = D0_real * lado0  (lado normalizado al ancho) -> D = k / lado
-  lado0: null,  // lado normalizado con el plato en el suelo (tara)
+  D0: null,     // distancia real camara-plato con el plato en el suelo, en cm
+  lado0: null,  // { id: lado normalizado } medido con el plato en el suelo
   gps: false, vibrar: true,
 }, JSON.parse(localStorage.getItem('pasto.cfg') || '{}'));
 let lecturas = JSON.parse(localStorage.getItem('pasto.lecturas') || '[]');
@@ -161,8 +161,8 @@ function guardar() {
   localStorage.setItem('pasto.lecturas', JSON.stringify(lecturas));
 }
 
-const buf = [];                   // últimos lados normalizados
-let ladoActual = null;            // mediana
+const buf = {};                   // { id: [últimos lados normalizados] }
+let lados = {};                   // { id: mediana } de los marcadores visibles ahora
 let pos = null;                   // última posición GPS
 let watchId = null;
 
@@ -198,19 +198,21 @@ function loop() {
     if (proc.width !== w || proc.height !== h) { proc.width = w; proc.height = h; overlay.width = w; overlay.height = h; }
     pctx.drawImage(video, 0, 0, w, h);
     const img = pctx.getImageData(0, 0, w, h);
-    const m = detector.detect(img).find(x => x.id === MARKER_ID);
+    const vistos = detector.detect(img).filter(x => MARKER_IDS.includes(x.id));
     octx.clearRect(0, 0, w, h);
-    if (m) {
+    const ahora = {};
+    for (const m of vistos) {
       const c = m.corners;
       let lado = 0;
       for (let i = 0; i < 4; i++) { const a = c[i], b = c[(i + 1) % 4]; lado += Math.hypot(a.x - b.x, a.y - b.y) / 4; }
-      buf.push(lado / w); if (buf.length > SMOOTH) buf.shift();
-      ladoActual = mediana(buf);
+      (buf[m.id] = buf[m.id] || []).push(lado / w);
+      if (buf[m.id].length > SMOOTH) buf[m.id].shift();
+      ahora[m.id] = mediana(buf[m.id]);
       octx.strokeStyle = '#7CFC00'; octx.lineWidth = 3; octx.beginPath();
       c.forEach((p, i) => i ? octx.lineTo(p.x, p.y) : octx.moveTo(p.x, p.y)); octx.closePath(); octx.stroke();
-    } else {
-      buf.length = 0; ladoActual = null;
     }
+    for (const id of MARKER_IDS) if (!(id in ahora)) delete buf[id];
+    lados = ahora;
     mostrarVivo();
   }
   requestAnimationFrame(loop);
@@ -221,23 +223,35 @@ const mediana = a => { const s = [...a].sort((x, y) => x - y); return s[s.length
 // ===========================================================================
 // cálculo
 // ===========================================================================
-function distancia(lado) { return cfg.k / lado; }                  // cm
-function alturaCm() {
-  if (ladoActual == null || cfg.k == null || cfg.lado0 == null) return null;
-  return distancia(cfg.lado0) - distancia(ladoActual);
+// Cada marcador da su propia distancia: D_i = D0 * lado0_i / lado_i.
+// Al normalizar contra su propio lado0, todos coinciden en D0 con el plato
+// en el suelo, así que la mediana no se sesga si alguno deja de verse.
+function distancias() {
+  if (cfg.D0 == null || !cfg.lado0) return [];
+  return Object.keys(lados)
+    .filter(id => cfg.lado0[id])
+    .map(id => cfg.D0 * cfg.lado0[id] / lados[id]);
 }
+function alturaCm() {
+  const ds = distancias();
+  if (!ds.length) return null;
+  return cfg.D0 - mediana(ds);
+}
+const nVistos = () => Object.keys(lados).filter(id => !cfg.lado0 || cfg.lado0[id]).length;
 const kgDe = h => cfg.A + cfg.B * h;
 
 function mostrarVivo() {
   const h = alturaCm();
-  if (ladoActual == null) {
+  if (!Object.keys(lados).length) {
     estado('Marcador no detectado', 'bad');
     $('kg').firstChild.nodeValue = '—'; $('alt').querySelector('b').textContent = '—';
     $('btnLectura').disabled = true;
     return;
   }
-  if (cfg.k == null) { estado('Falta calibrar (Más)', 'warn'); $('btnLectura').disabled = true; return; }
-  estado('Plato detectado', 'ok');
+  if (cfg.D0 == null) { estado(`Falta calibrar (Más) — ${Object.keys(lados).length} marcador(es) a la vista`, 'warn'); $('btnLectura').disabled = true; return; }
+  if (h == null) { estado('Marcadores sin calibrar: recalibrá', 'warn'); $('btnLectura').disabled = true; return; }
+  const nv = nVistos();
+  estado(`Plato detectado · ${nv} marcador${nv > 1 ? 'es' : ''}`, 'ok');
   $('kg').firstChild.nodeValue = fmt(kgDe(h), 0);
   $('alt').querySelector('b').textContent = fmt(h, 1) + ' cm';
   $('btnLectura').disabled = false;
@@ -272,9 +286,14 @@ $('btnLectura').onclick = () => {
   aviso(`Lectura ${lecturas.filter(l => l.potrero === cfg.potrero).length}: ${fmt(h, 1)} cm`);
 };
 $('btnTara').onclick = () => {
-  if (ladoActual == null) return aviso('Primero tiene que verse el marcador');
-  if (cfg.k == null) return aviso('Calibrá primero desde Más');
-  cfg.lado0 = ladoActual; guardar(); aviso('Tara guardada');
+  if (cfg.D0 == null) return aviso('Calibrá primero desde Más');
+  const n = Object.keys(lados).length;
+  if (!n) return aviso('Primero tiene que verse algún marcador');
+  // Rehace el cero conservando D0: reescala los lado0 de los visibles.
+  const nuevo = Object.assign({}, cfg.lado0);
+  for (const id of Object.keys(lados)) nuevo[id] = lados[id];
+  cfg.lado0 = nuevo; guardar();
+  aviso(`Tara guardada con ${n} marcador${n > 1 ? 'es' : ''}`);
 };
 $('btnDeshacer').onclick = () => {
   const i = lecturas.map(l => l.potrero).lastIndexOf(cfg.potrero);
@@ -284,11 +303,16 @@ $('btnDeshacer').onclick = () => {
 $('btnCalibrar').onclick = () => {
   const d = parseFloat($('distReal').value);
   if (!(d > 10)) return aviso('Ingresá la distancia en cm');
-  if (ladoActual == null) return aviso('Tiene que verse el marcador');
-  cfg.lado0 = ladoActual; cfg.k = d * ladoActual; guardar(); calibInfo(); aviso('Cámara calibrada y tara hecha');
+  const n = Object.keys(lados).length;
+  if (!n) return aviso('Tiene que verse algún marcador');
+  cfg.D0 = d; cfg.lado0 = Object.assign({}, lados); guardar(); calibInfo();
+  aviso(`Calibrado con ${n} marcador${n > 1 ? 'es' : ''}`);
 };
 function calibInfo() {
-  $('calibInfo').textContent = cfg.k ? `Calibrado. Con el plato en el suelo la cámara ve el marcador a ${fmt(distancia(cfg.lado0), 1)} cm.` : 'Todavía no calibrado.';
+  if (cfg.D0 == null) { $('calibInfo').textContent = 'Todavía no calibrado.'; return; }
+  const ids = Object.keys(cfg.lado0 || {}).sort();
+  $('calibInfo').textContent = `Calibrado a ${fmt(cfg.D0, 1)} cm con ${ids.length} marcador(es): ID ${ids.join(', ')}. ` +
+    (ids.length < MARKER_IDS.length ? 'Recalibrá con los cuatro a la vista para tener redundancia.' : '');
 }
 
 $('btnMas').onclick = () => { cargarForm(); $('mas').classList.add('abierto'); };
